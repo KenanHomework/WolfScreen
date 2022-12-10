@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Images\about_icon.png" />
+    <None Remove="Images\client_icon.png" />
+    <None Remove="Images\client_ipAddress_icon.png" />
+    <None Remove="Images\connection_icon.png" />
+    <None Remove="Images\device_about.png" />
+    <None Remove="Images\server_icon.png" />
+    <None Remove="Images\server_ipAddress_icon.png" />
+    <None Remove="Images\wolf.jpg" />
+    <None Remove="Images\wolf_icon.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WPF-UI" Version="2.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Images\about_icon.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Images\client_icon.png" />
+    <Resource Include="Images\client_ipAddress_icon.png" />
+    <Resource Include="Images\connection_icon.png" />
+    <Resource Include="Images\device_about.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Images\server_icon.png" />
+    <Resource Include="Images\server_ipAddress_icon.png" />
+    <Resource Include="Images\wolf.jpg" />
+    <Resource Include="Images\wolf_icon.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+</Project>

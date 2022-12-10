@@ -1,0 +1,177 @@
+﻿<Window x:Class="Client.MVVM.Views.DeviceAbout"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Client.MVVM.Views" xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        mc:Ignorable="d" AllowsTransparency="True" Background="Transparent"
+        Title="About" Height="400" Width="450"
+        ResizeMode="NoResize" WindowStartupLocation="CenterScreen" 
+        WindowStyle="None" Icon="/images/device_about.png">
+    <Border BorderThickness="0.3" CornerRadius="15" Background="{StaticResource MainDark_clr}">
+        <DockPanel>
+
+            <!--#region Title Bar-->
+            <Border Background="{StaticResource MainDark_clr}" DockPanel.Dock="Top" CornerRadius="15 15 0 0" Height="29" MouseDown="Border_MouseDown">
+                <Grid Margin="0 3 3 0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="40"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" VerticalAlignment="Center" 
+                                HorizontalAlignment="Center">
+
+                        <Image Grid.Column="0" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center"  Margin="0"
+                      Source="/images/device_about.png"/>
+
+                        <Label Foreground="#f0f4fd" Margin="15 0"          
+                        FontWeight="SemiBold" 
+                        Content="About" 
+                        VerticalAlignment="Center" HorizontalAlignment="Center" Name="TitleBar"/>
+
+                    </StackPanel>
+
+                    <ui:Button Content="X" FontSize="10" Margin="2 0" Grid.Column="1"
+                                   Click="ResizeButton_Click" Appearance="Danger"/>
+
+                </Grid>
+            </Border>
+
+            <!--#endregion-->
+
+
+            <!--#region AppView-->
+
+            <Grid Background="{StaticResource MainDark_clr}" >
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+
+                <!--#region HostName-->
+
+                <Grid Grid.Row="0" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="40"/>
+                        <ColumnDefinition Width="0.5*"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+
+                    <Image Grid.Column="0" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center"  Margin="0"
+                      Source="/images/client_icon.png"/>
+
+                    <TextBlock Grid.Column="1" Text="CLient Name ~" Foreground="DarkGray" Margin="5 0"
+                               HorizontalAlignment="Left" VerticalAlignment="Center"/>
+
+                    <TextBlock Grid.ColumnSpan="3" 
+                               Text="{
+                                        Binding Hostname,
+                                        Mode=OneWay,
+                                        UpdateSourceTrigger=PropertyChanged}" 
+                               Foreground="White" Margin="5 0"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                </Grid>
+
+                <!--#endregion-->
+
+                <Separator Grid.Row="0" VerticalAlignment="Bottom" Width="300"/>
+
+                <!--#region IpAddress-->
+
+                <Grid Grid.Row="1" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="40"/>
+                        <ColumnDefinition Width="0.5*"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+
+                    <Image Grid.Column="0" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center"  Margin="0"
+                      Source="/images/client_ipAddress_icon.png"/>
+
+                    <TextBlock Grid.Column="1" Text="CLient IpAddress ~" Foreground="DarkGray" Margin="5 0"
+                               HorizontalAlignment="Left" VerticalAlignment="Center"/>
+
+                    <TextBlock Grid.ColumnSpan="3" 
+                               Text="{
+                                        Binding IpAddress,
+                                        Mode=OneWay,
+                                        UpdateSourceTrigger=PropertyChanged}" 
+                               Foreground="White" Margin="5 0"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                </Grid>
+
+                <!--#endregion-->
+
+                <Separator Grid.Row="1" VerticalAlignment="Bottom" Width="300"/>
+
+                <!--#region ServerIpAddress-->
+
+                <Grid Grid.Row="2" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="40"/>
+                        <ColumnDefinition Width="0.5*"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+
+                    <Image Grid.Column="0" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center"  Margin="0"
+                      Source="/images/server_ipAddress_icon.png"/>
+
+                    <TextBlock Grid.Column="1" Text="Server IpAddress ~" Foreground="DarkGray" Margin="5 0"
+                               HorizontalAlignment="Left" VerticalAlignment="Center"/>
+
+                    <TextBlock Grid.ColumnSpan="3" 
+                               Text="{
+                                        Binding ServerIpAddress,
+                                        Mode=OneWay,
+                                        UpdateSourceTrigger=PropertyChanged}" 
+                               Foreground="White" Margin="5 0"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                </Grid>
+
+                <!--#endregion-->
+
+                <Separator Grid.Row="2" VerticalAlignment="Bottom" Width="300"/>
+
+                <!--#region Status-->
+
+                <Grid Grid.Row="3" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="40"/>
+                        <ColumnDefinition Width="0.5*"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+
+                    <Image Grid.Column="0" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center"  Margin="0"
+                      Source="/images/connection_icon.png"/>
+
+                    <TextBlock Grid.Column="1" Text="Connection Status ~" Foreground="DarkGray" Margin="5 0"
+                               HorizontalAlignment="Left" VerticalAlignment="Center"/>
+
+                    <TextBlock Grid.ColumnSpan="3" 
+                               Text="{
+                                        Binding Status,
+                                        Mode=OneWay,
+                                        UpdateSourceTrigger=PropertyChanged}" 
+                               Foreground="White" Margin="5 0"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                </Grid>
+
+                <!--#endregion-->
+
+
+            </Grid>
+
+            <!--#endregion-->
+
+        </DockPanel>
+    </Border>
+
+</Window>
+

@@ -1,0 +1,93 @@
+﻿<Window x:Class="Client.MVVM.Views.About"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Client.MVVM.Views" xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        mc:Ignorable="d" AllowsTransparency="True" Background="Transparent"
+        Title="About" Height="400" Width="450"
+        ResizeMode="NoResize" WindowStartupLocation="CenterScreen" 
+        WindowStyle="None" Icon="/images/about_icon.png">
+    <Border BorderThickness="0.3" CornerRadius="15" Background="{StaticResource MainDark_clr}">
+        <DockPanel>
+
+            <!--#region Title Bar-->
+            <Border Background="{StaticResource MainDark_clr}" DockPanel.Dock="Top" CornerRadius="15 15 0 0" Height="29" MouseDown="Border_MouseDown">
+                <Grid Margin="0 3 3 0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="40"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" VerticalAlignment="Center" 
+                                HorizontalAlignment="Center">
+
+                        <Image Grid.Column="0" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center"  Margin="0"
+                      Source="/images/about_icon.png"/>
+
+                        <Label Foreground="#f0f4fd" Margin="15 0"          
+                        FontWeight="SemiBold" 
+                        Content="About" 
+                        VerticalAlignment="Center" HorizontalAlignment="Center" Name="TitleBar"/>
+
+                    </StackPanel>
+
+                    <ui:Button Content="X" FontSize="10" Margin="2 0" Grid.Column="1"
+                                   Click="ResizeButton_Click" Appearance="Danger"/>
+
+                </Grid>
+            </Border>
+
+            <!--#endregion-->
+
+
+            <!--#region AppView-->
+
+            <Grid Background="{StaticResource MainDark_clr}" >
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="80"/>
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+
+                <!-- Project Info -->
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+
+                    <Image Grid.Column="0" Width="40" Height="40" HorizontalAlignment="Center" VerticalAlignment="Center"  Margin="0"
+                      Source="/images/wolf_icon.png"/>
+
+                    <TextBlock Text="Wolf Screen" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe UI Black" FontSize="22" 
+                  FontWeight="Bold" Foreground="#FFF0F0F0" Margin="5 0 0 0"/>
+
+                </StackPanel>
+
+
+                <!-- About Text -->
+                <TextBlock FontSize="15" VerticalAlignment="Center" 
+                            HorizontalAlignment="Center"
+                            FontStyle="Oblique" FontWeight="ExtraBlack" Margin="10"
+                            TextAlignment="Center"
+                            Grid.Row="1" Name="InfoText" TextWrapping="Wrap" Foreground="LightGray"/>
+
+
+                <!-- Links -->
+                <StackPanel Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center">
+
+                    <ui:Hyperlink Content="Project Source" 
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  NavigateUri="https://github.com/KenanHomework/WolfPad"/>
+
+                    <ui:Hyperlink Content="Github Account" 
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  NavigateUri="https://github.com/kenanysbv"/>
+
+                </StackPanel>
+
+            </Grid>
+
+            <!--#endregion-->
+
+        </DockPanel>
+    </Border>
+
+</Window>
