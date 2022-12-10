@@ -9,13 +9,11 @@ namespace Client.MVVM.Views
     /// </summary>
     public partial class DeviceAbout : Window
     {
-        public DeviceAbout()
+        public DeviceAbout(DeviceInfo deviceInfo)
         {
             InitializeComponent();
-            DataContext = DeviceInfo;
+            DataContext = deviceInfo;
         }
-
-        public DeviceInfo DeviceInfo { get; set; } = new DeviceInfo();
 
         private void ResizeButton_Click(object sender, RoutedEventArgs e) => this.Close();
 

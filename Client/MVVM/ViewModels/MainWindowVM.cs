@@ -33,7 +33,6 @@ namespace Client.MVVM.ViewModels
 
         #endregion
 
-
         #region Members
 
         public System.Windows.Controls.Image ScreenShotArea { get; set; }
@@ -100,7 +99,7 @@ namespace Client.MVVM.ViewModels
 
         public void AboutCommandRun(object param) => new About().ShowDialog();
 
-        public void AboutDeviceCommandRun(object param) => new DeviceAbout() { DeviceInfo = this.DeviceInfo }.ShowDialog();
+        public void AboutDeviceCommandRun(object param) => new DeviceAbout(this.DeviceInfo).ShowDialog();
 
         #endregion
 
@@ -183,13 +182,7 @@ namespace Client.MVVM.ViewModels
             biImg.BeginInit();
             biImg.StreamSource = ms;
             biImg.EndInit();
-
-
-
             ImageSource imgSrc = biImg as ImageSource;
-
-
-
             return imgSrc;
         }
 
