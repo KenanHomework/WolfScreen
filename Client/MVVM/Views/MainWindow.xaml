@@ -150,7 +150,7 @@
                            VerticalAlignment="Center" HorizontalAlignment="Center"/>
 
                     <ui:Button Grid.Column="1" Name="DisposeButton" 
-                           Appearance="Info" Width="150" 
+                           Appearance="Info" Width="180" 
                            Command="{Binding DisposeConnectionCommand}"
                            VerticalAlignment="Center" HorizontalAlignment="Center"/>
 

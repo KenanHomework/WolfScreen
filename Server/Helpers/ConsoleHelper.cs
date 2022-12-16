@@ -7,18 +7,31 @@ using System.Threading.Tasks;
 
 namespace Server.Helpers
 {
+    public enum ClientInfoType { Connected, Disconnected }
+
     public static class ConsoleHelper
     {
-        public static void ShowDevice(DeviceInfo device)
+        public static void ShowClientInfo(DeviceInfo device,ClientInfoType type = ClientInfoType.Connected)
         {
             ShowProperyHorizantal("Host Name", device.Hostname);
             ShowProperyHorizantal("IpV4 Address", device.IpAddress);
-            Console.ForegroundColor = ConsoleColor.DarkGreen;
-            Console.Write(" connected. ");
+
+            switch (type)
+            {
+                case ClientInfoType.Connected:
+                    Console.ForegroundColor = ConsoleColor.DarkGreen;
+                    Console.WriteLine(" connected. ");
+                    break;
+                case ClientInfoType.Disconnected:
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine(" disconnected. ");
+                    break;
+                default:
+                    break;
+            }
+
             Console.ResetColor();
-
         }
-
 
         public static void ShowPropery(string name, string value)
         {

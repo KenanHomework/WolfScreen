@@ -1,6 +1,11 @@
-﻿using Client.MVVM.Views;
+﻿using Client.MVVM.Models;
+using Client.MVVM.Views;
+using Common.CommonData;
 using Common.Models;
+using Common.Requests;
+using Common.Responses;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.IO;
@@ -9,6 +14,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
@@ -39,7 +45,16 @@ namespace Client.MVVM.ViewModels
 
         public DeviceInfo DeviceInfo { get; set; } = new DeviceInfo();
 
-        public UDPClient Client { get; set; }
+
+        public static TcpClient Client = null;
+
+        public static UdpClient UdpClient = new UdpClient(GeneralUDPValues.CLIENT_PORT_NUMBER);
+
+        public static NetworkStream Stream = null;
+
+        public static BinaryReader BinaryReader = null;
+
+        public static BinaryWriter BinaryWriter = null;
 
 
         public InfoBar ConnectionInfoBar { get; set; }
@@ -69,25 +84,50 @@ namespace Client.MVVM.ViewModels
 
         public async void ConnectCommandRun(object param)
         {
+            try
+            {
+                var connectionServer = ConnectServer();
+                if (!connectionServer.Successed)
+                {
+                    await ShowInfobar(connectionServer, InfoBarSeverity.Error, new TimeSpan(0, 0, 3));
+                    return;
+                }
+            }
+            catch (Exception)
+            {
+                await ShowInfobar(GetBaseConnectioErrorInfoBarData(), InfoBarSeverity.Error, new TimeSpan(0, 0, 3));
+                return;
+            }
+
+            await ShowInfobar("Successfuly connected to the server", "Screen sharing will start automatically in a short time.", InfoBarSeverity.Success, new TimeSpan(0, 0, 3));
+
+            ServerIpAddress.IsEnabled = false;
             ConnectButton.IsEnabled = false;
             DisposeButton.Visibility = Visibility.Visible;
             DeviceInfo.Status = Common.Enums.ClientConnectionStatus.Connected;
-            await ShowInfobar("Successfuly connected to the server", "Screen sharing will start automatically in a short time.", InfoBarSeverity.Success, new TimeSpan(0, 0, 3));
 
             StartScreenShare();
         }
 
-        public bool ConnectCommandCanRun(object param) => !string.IsNullOrEmpty(ServerIpAddress.Text) && ServerIpAddress.Text.Length >= 7;
+        public bool ConnectCommandCanRun(object param) => !string.IsNullOrEmpty(ServerIpAddress.Text) && CheckServerIp();
 
 
         public async void DisposeConnectionCommandRun(object param)
         {
+            ServerIpAddress.IsEnabled = true;
             DeviceInfo.Status = Common.Enums.ClientConnectionStatus.Free;
             ConnectButton.IsEnabled = true;
             DisposeButton.Visibility = Visibility.Collapsed;
-            
+
+            BinaryWriter.Write(ConnectionRequests.DISCONNECTION_REQUEST);
+
+            Client.Close();
+            Stream.Close();
+            BinaryWriter.Close();
+            BinaryReader.Close();
+
             await ShowInfobar("Successful disconnection from the server", "Screen sharing will be suspended shortly.", InfoBarSeverity.Warning, new TimeSpan(0, 0, 3));
-            ScreenShotArea.Source = new BitmapImage(new Uri(@"/images/wolf.jpg",UriKind.Relative));
+            ScreenShotArea.Source = new BitmapImage(new Uri(@"/images/wolf.jpg", UriKind.Relative));
         }
 
         public bool DisposeConnectionCommandCanRun(object param) => !string.IsNullOrEmpty(ServerIpAddress.Text);
@@ -105,6 +145,16 @@ namespace Client.MVVM.ViewModels
 
         #region Methods
 
+        public InfoBarData GetBaseConnectioErrorInfoBarData()
+        {
+            return new InfoBarData()
+            {
+                Successed = false,
+                Title = "There was a problem connecting to server!",
+                Message = "Try again after making sure that you have typed the Server IP address correctly and that you are connected to the internet."
+            };
+        }
+
         public async void StartScreenShare()
         {
             while (true)
@@ -117,61 +167,131 @@ namespace Client.MVVM.ViewModels
             }
         }
 
-        private void RecieveScreenShot()
+        public bool CheckInternet()
         {
-            var client = new Socket(
-                                   AddressFamily.InterNetwork,
-                                   SocketType.Dgram,
-                                   ProtocolType.Udp
-                                   );
 
-            byte[] buffer = new byte[ushort.MaxValue];
-            EndPoint endPoint = new IPEndPoint(IPAddress.Loopback, 27001);
+            if (!System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
+                return false;
 
-            client.SendTo(Encoding.Default.GetBytes("get"), SocketFlags.None, endPoint);
+            return true;
+        }
+
+        public bool CheckServerIp()
+        {
+            if (!Regex.Match(ServerIpAddress.Text, @"\b(?:(?:2(?:[0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9])\.){3}(?:(?:2([0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9]))\b").Success)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public InfoBarData ConnectServer()
+        {
+            // Necessary checks
+            if (!CheckInternet())
+                return new InfoBarData()
+                {
+                    Successed = false,
+                    Title = "You don't have internet connection!",
+                    Message = "Recheck your internet connection and try again"
+                };
+
+            if (!CheckServerIp())
+                return new InfoBarData()
+                {
+                    Successed = false,
+                    Title = "Server ip address is not correct!",
+                    Message = "Please make sure you have typed the Server IP address correctly and try again."
+                };
 
 
-            var len = client.ReceiveFrom(buffer, SocketFlags.None, ref endPoint);
-            string response = Encoding.Default.GetString(buffer, 0, len);
+            // Initialize instances
+            Client = new TcpClient();
+            Client.Connect(ServerIpAddress.Text, 27001);
+            Stream = Client.GetStream();
+            BinaryReader = new BinaryReader(Stream);
+            BinaryWriter = new BinaryWriter(Stream);
+            string response = string.Empty;
+
+
+            // Send connection request
+            BinaryWriter.Write(ConnectionRequests.CONNECTION_REQUEST);
+
+            // Recieve response
+            response = BinaryReader.ReadString();
 
             // Check response
-            if (response.ToLower() != "start")
-                return;
+            if (!response.ToLower().Equals(ConnectionResponses.SEND_DEVICE_INFO))
+                return GetBaseConnectioErrorInfoBarData();
+
+
+            // Send device info
+            BinaryWriter.Write(JsonSerializer.Serialize(DeviceInfo));
+
+            // Recieve response
+            response = BinaryReader.ReadString();
+
+            // Check response
+            if (!response.ToLower().Equals(ConnectionResponses.CONNECTION_SUCCESSFULLY_ESTABLISHED))
+                return GetBaseConnectioErrorInfoBarData();
+
+            return new InfoBarData() { Successed = true };
+
+        }
+
+        public void RecieveScreenShot()
+        {
+            // Initialize Instances
+            IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
+            byte[] request = new byte[ushort.MaxValue];
+            byte[] response = new byte[ushort.MaxValue];
+
+
+            // Send request to server for get screen shot
+            BinaryWriter.Write(ConnectionRequests.GET_SCREENSHOT_REQUEST);
+
+
+            // Receive a responsoe for initialize remoteEP
+            UdpClient.Receive(ref remoteEP);
 
 
             // Get number of parts
-            len = client.ReceiveFrom(buffer, SocketFlags.None, ref endPoint);
-            int numberParts = int.Parse(Encoding.Default.GetString(buffer, 0, len));
-            client.SendTo(Encoding.Default.GetBytes("received"), SocketFlags.None, endPoint);
+            response = UdpClient.Receive(ref remoteEP);
+            int numberParts = int.Parse(Encoding.Default.GetString(response));
+            request = Encoding.Default.GetBytes(ConnectionRequests.RECEIVED);
+            UdpClient.Send(request, request.Length, remoteEP);
+
 
             // Get lenght of array
-            len = client.ReceiveFrom(buffer, SocketFlags.None, ref endPoint);
-            int lenght = int.Parse(Encoding.Default.GetString(buffer, 0, len));
-            client.SendTo(Encoding.Default.GetBytes("received"), SocketFlags.None, endPoint);
+            response = UdpClient.Receive(ref remoteEP);
+            int lenght = int.Parse(Encoding.Default.GetString(response));
+            request = Encoding.Default.GetBytes(ConnectionRequests.RECEIVED);
+            UdpClient.Send(request, request.Length, remoteEP);
             byte[] responseImage = new byte[lenght];
 
-            // Recive screenshot
+
+            // Receive screenshot
             int received = 0;
             for (int i = 0; i < numberParts; i++)
             {
 
-                len = client.ReceiveFrom(buffer, SocketFlags.None, ref endPoint);
+                response = UdpClient.Receive(ref remoteEP);
 
                 // Add data to responseImage
-                for (int j = received, k = 0; k < len; j++, k++)
+                for (int j = received, k = 0; k < response.Length; j++, k++)
                 {
-                    responseImage[j] = buffer[k];
+                    responseImage[j] = response[k];
                 }
 
-                client.SendTo(Encoding.Default.GetBytes("received"), SocketFlags.None, endPoint);
+                received += response.Length;
 
-                received += len;
+                request = Encoding.Default.GetBytes(ConnectionRequests.RECEIVED);
+                UdpClient.Send(request, request.Length, remoteEP);
             }
-
-            // Convert Bytes
 
             // Assign image to WPF Image
             var image = ByteToImage(responseImage);
+            ScreenShotArea.Source = null;
             ScreenShotArea.Source = image;
         }
 
@@ -182,7 +302,7 @@ namespace Client.MVVM.ViewModels
             biImg.BeginInit();
             biImg.StreamSource = ms;
             biImg.EndInit();
-            ImageSource imgSrc = biImg as ImageSource;
+            ImageSource imgSrc = biImg;
             return imgSrc;
         }
 
@@ -215,6 +335,18 @@ namespace Client.MVVM.ViewModels
         {
             ConnectionInfoBar.Title = title;
             ConnectionInfoBar.Message = message;
+            ConnectionInfoBar.Severity = severity;
+
+            ConnectionInfoBar.IsOpen = true;
+            await Task.Delay(openTime);
+            ConnectionInfoBar.IsOpen = false;
+
+        }
+
+        public async Task ShowInfobar(InfoBarData infoBarData, InfoBarSeverity severity, TimeSpan openTime)
+        {
+            ConnectionInfoBar.Title = infoBarData.Title;
+            ConnectionInfoBar.Message = infoBarData.Message;
             ConnectionInfoBar.Severity = severity;
 
             ConnectionInfoBar.IsOpen = true;

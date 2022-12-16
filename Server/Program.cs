@@ -1,6 +1,11 @@
-﻿using Common.Models;
+﻿using Common.CommonData;
+using Common.Models;
+using Common.Requests;
+using Common.Responses;
 using Server.Helpers;
+using System;
 using System.Drawing;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -10,101 +15,126 @@ namespace Server
 {
     public class Program
     {
-        public static UDPServer Server = new UDPServer();
+        public static UdpClient UdpClient = new UdpClient();
+        public static TcpClient Client = null;
 
-        public static DeviceInfo DeviceInfo = new DeviceInfo();
+        public static NetworkStream Stream = null;
 
-        static void Main(string[] args)
+        public static BinaryReader BinaryReader = null;
+
+        public static BinaryWriter BinaryWriter = null;
+
+        public static IPAddress ServerIpAddress = null;
+
+        public static DeviceInfo ServerInfo = new DeviceInfo();
+
+        public static DeviceInfo ClientInfo = null;
+
+        public static TcpListener Listener = null;
+
+        public static void InitializeInistances()
         {
-            var listener = new Socket(
-                                     AddressFamily.InterNetwork,
-                                     SocketType.Dgram,
-                                     ProtocolType.Udp
-                                     );
-            IPAddress ip = IPAddress.Loopback;
-            var listenEP = new IPEndPoint(ip, 27001);
-            listener.Bind(listenEP);
-            var buffer = new byte[ushort.MaxValue];
-            EndPoint endPoint = new IPEndPoint(IPAddress.Any, 0);
 
+            // Initialize Server Ip Address
+            ServerIpAddress = IPAddress.Loopback;
+
+            // Initialize TCP Listener
+            //Listener = new TcpListener(ServerIpAddress, GeneralUDPValues.SERVER_PORT_NUMBER);
+            Listener = new TcpListener(27001);
+
+            Console.WriteLine("Server launched");
+            ConsoleHelper.ShowPropery("Server Ip Address", ServerIpAddress.ToString());
+        }
+
+        public static void ConnectionClient()
+        {
+            // Server's read loop
+            string request = string.Empty;
             while (true)
             {
-                var len = listener.ReceiveFrom(buffer, ref endPoint);
-                string request = Encoding.Default.GetString(buffer, 0, len);
+                // Send response for Client send their device info
+                BinaryWriter.Write(ConnectionResponses.SEND_DEVICE_INFO);
 
-                // Check request
-                if (request.ToLower() != "get")
-                    continue;
+                // Read request
+                request = BinaryReader.ReadString();
 
-                // Send response for begin of parts
-                listener.SendTo(Encoding.Default.GetBytes("start"), SocketFlags.None, endPoint);
-
-                // Get Screenshot
-                Bitmap memoryImage;
-                memoryImage = new Bitmap(1600, 1080);
-                Size s = new Size(memoryImage.Width, memoryImage.Height);
-                Graphics memoryGraphics = Graphics.FromImage(memoryImage);
-                memoryGraphics.CopyFromScreen(0, 0, 0, 0, s);
-
-                // Convert Bytes
-                ImageConverter converter = new ImageConverter();
-                var bytes = (byte[])converter.ConvertTo(memoryImage, typeof(byte[]));
-
-                // Find & Sending number of part
-                int numberOfParts = (bytes.Length / 40_000) + 1;
-                listener.SendTo(Encoding.Default.GetBytes(numberOfParts.ToString()), SocketFlags.None, endPoint);
-                listener.ReceiveFrom(buffer, ref endPoint);
-
-                // Find & Sending number of part
-                listener.SendTo(Encoding.Default.GetBytes(bytes.Length.ToString()), SocketFlags.None, endPoint);
-                listener.ReceiveFrom(buffer, ref endPoint);
-
-
-                // Divide into parts and send
-                int sended = 0;
-                for (int i = 0; i < numberOfParts; i++)
+                try
                 {
+                    ClientInfo = JsonSerializer.Deserialize<DeviceInfo>(request);
 
-                    sended += listener.SendTo(bytes.Skip(sended).Take(40000).ToArray(), SocketFlags.None, endPoint);
-                    listener.ReceiveFrom(buffer, ref endPoint);
+                    // Check Client device info
+                    if (ClientInfo == null)
+                    {
+                        BinaryWriter.Write(ConnectionResponses.CONNECTION_NOT_ESTABLISHED);
+                        break;
+                    }
+
+                }
+                catch (Exception)
+                {
+                    BinaryWriter.Write(ConnectionResponses.CONNECTION_NOT_ESTABLISHED);
+                    break;
                 }
 
-            }
+                // Send response to Client connection successfully established
+                BinaryWriter.Write(ConnectionResponses.CONNECTION_SUCCESSFULLY_ESTABLISHED);
 
+                // Show connected Client
+                ConsoleHelper.ShowClientInfo(ClientInfo);
+
+                break;
+            }
         }
 
-        public static void ReadRequest(string request)
+        public static void DisconnectionClient()
         {
-
-            if (!CheckRequest(request))
+            if (ClientInfo == null)
                 return;
 
-            ConsoleHelper.ShowDevice(DeviceInfo);
-
-            StartConnection();
-        }
-
-        public static bool CheckRequest(string request)
-        {
-
-            DeviceInfo device = null;
-
-            try { device = JsonSerializer.Deserialize<DeviceInfo>(request); }
-            catch (Exception) { }
-
-            if (device == null)
-                return false;
-
-            DeviceInfo = device;
-
-            return true;
-
+            ConsoleHelper.ShowClientInfo(ClientInfo, ClientInfoType.Disconnected);
+            ClientInfo = null;
+            Client.Close();
+            Stream.Close();
+            BinaryWriter.Close();
+            BinaryReader.Close();
         }
 
         public static void SendScreenshot()
         {
-            // Send response for begin of parts
-            Server.Send("begin");
+            // Initialize Instances
+            IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse(ClientInfo.IpAddress), GeneralUDPValues.CLIENT_PORT_NUMBER);
+            byte[] response = new byte[ushort.MaxValue];
+
+
+            //Bitmap memoryImage;
+            //memoryImage = new Bitmap(1600, 1080);
+            //Size s = new Size(memoryImage.Width, memoryImage.Height);
+            //Graphics memoryGraphics = Graphics.FromImage(memoryImage);
+            //memoryGraphics.CopyFromScreen(0, 0, 0, 0, s);
+
+
+            //ImageConverter converter = new ImageConverter();
+            //var bytes = (byte[])converter.ConvertTo(memoryImage, typeof(byte[]));
+            //int a = (bytes.Length / 20000) + 1;
+            //int count = 0;
+            //while (a >= 0)
+            //{
+            //    if (a == 0)
+            //    {
+            //        UdpClient.Send(new byte[2] { 2, 3 }, new byte[2] { 2, 3 }.Length, remoteEP);
+            //        break;
+            //    }
+            //    UdpClient.Send(bytes.Skip(count).Take(20000).ToArray(), bytes.Skip(count).Take(20000).ToArray().Length, remoteEP);
+            //    a--;
+            //    count += 20000;
+            //}
+
+
+
+            // Send empty response to client for inilialize endpoint
+            response = Encoding.Default.GetBytes(ConnectionResponses.INITIALIZE_ENDPOINT);
+            UdpClient.Send(response, response.Length, remoteEP);
+
 
             // Get Screenshot
             Bitmap memoryImage;
@@ -113,48 +143,82 @@ namespace Server
             Graphics memoryGraphics = Graphics.FromImage(memoryImage);
             memoryGraphics.CopyFromScreen(0, 0, 0, 0, s);
 
+
             // Convert Bytes
             ImageConverter converter = new ImageConverter();
             var bytes = (byte[])converter.ConvertTo(memoryImage, typeof(byte[]));
 
-            // Find & Sending number of part
-            int numberOfParts = (bytes.Length / 40_000) + 1;
-            Server.SendResponse(numberOfParts.ToString());
 
             // Find & Sending number of part
-            Server.SendResponse(bytes.Length.ToString());
+            int numberOfParts = (bytes.Length / 40_000) + 1;
+            response = Encoding.Default.GetBytes(numberOfParts.ToString());
+            UdpClient.Send(response, response.Length, remoteEP);
+            UdpClient.Receive(ref remoteEP);
+
+
+            // Find & Sending lenght of image byte array
+            response = Encoding.Default.GetBytes(bytes.Length.ToString());
+            UdpClient.Send(response, response.Length, remoteEP);
+            UdpClient.Receive(ref remoteEP);
 
 
             // Divide into parts and send
             int sended = 0;
             for (int i = 0; i < numberOfParts; i++)
             {
-                sended += Server.SendResponse(bytes.Skip(sended).Take(40000).ToArray());
+                response = bytes.Skip(sended).Take(40000).ToArray();
+                sended += UdpClient.Send(response, response.Length, remoteEP);
+                UdpClient.Receive(ref remoteEP);
             }
         }
 
-        public static void StartConnection()
+        public static void StartServer()
         {
-            var buffer = new byte[ushort.MaxValue];
+            // Server's main loop
+            while (true)
+            {
+                string request = BinaryReader.ReadString();
 
-            // Change EndPoint to connected client
-            Server.AssignEndpoint(new IPEndPoint(IPAddress.Parse(DeviceInfo.IpAddress), 0));
+                switch (request.ToLower())
+                {
+                    case ConnectionRequests.CONNECTION_REQUEST:
+                        ConnectionClient();
+                        break;
 
-            // Send response for connection
-            Server.Send("connected");
+                    case ConnectionRequests.DISCONNECTION_REQUEST:
+                        DisconnectionClient();
+                        return;
 
-            //while (true)
-            //{
-            //}
-            SendScreenshot();
+                    case ConnectionRequests.GET_SCREENSHOT_REQUEST:
+                        SendScreenshot();
+                        break;
 
+                    default:
+                        break;
+                }
 
+            }
         }
 
-        public static byte[] ImageToByte(Image img)
+        static void Main(string[] args)
         {
-            ImageConverter converter = new ImageConverter();
-            return (byte[])converter.ConvertTo(img, typeof(byte[]));
+
+            InitializeInistances();
+
+            // Start listening 
+            Listener.Start();
+
+            // Server's main loop.
+            while (true)
+            {
+                Client = Listener.AcceptTcpClient();
+                Stream = Client.GetStream();
+                BinaryReader = new BinaryReader(Stream);
+                BinaryWriter = new BinaryWriter(Stream);
+
+                StartServer();
+            }
+
         }
 
     }
