@@ -1,13 +1,14 @@
-﻿using Client.MVVM.Models;
+﻿using Client.Exceptions;
+using Client.MVVM.Models;
 using Client.MVVM.Views;
 using Common.CommonData;
+using Common.Enums;
 using Common.Models;
 using Common.Requests;
 using Common.Responses;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
+using System.Data.Common;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -15,11 +16,11 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Threading;
 using Wpf.Ui.Common;
 using Wpf.Ui.Controls;
 using RelayCommand = Client.Commands.RelayCommand;
@@ -89,24 +90,29 @@ namespace Client.MVVM.ViewModels
                 var connectionServer = ConnectServer();
                 if (!connectionServer.Successed)
                 {
-                    await ShowInfobar(connectionServer, InfoBarSeverity.Error, new TimeSpan(0, 0, 3));
+                    await ShowInfobar(connectionServer, InfoBarSeverity.Error, new TimeSpan(0, 0, 10));
                     return;
                 }
             }
             catch (Exception)
             {
-                await ShowInfobar(GetBaseConnectioErrorInfoBarData(), InfoBarSeverity.Error, new TimeSpan(0, 0, 3));
+                await ShowInfobar(GetBaseConnectioErrorInfoBarData(), InfoBarSeverity.Error, new TimeSpan(0, 0, 10));
                 return;
             }
 
             await ShowInfobar("Successfuly connected to the server", "Screen sharing will start automatically in a short time.", InfoBarSeverity.Success, new TimeSpan(0, 0, 3));
 
-            ServerIpAddress.IsEnabled = false;
-            ConnectButton.IsEnabled = false;
-            DisposeButton.Visibility = Visibility.Visible;
-            DeviceInfo.Status = Common.Enums.ClientConnectionStatus.Connected;
+            ConnectionChangedUI(ClientConnectionStatus.Connected);
 
-            StartScreenShare();
+            try
+            {
+                StartScreenShare();
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show("ConnectionRun Exception");
+                GetErrorMessageBox("Problem occurred", ex.Message);
+            }
         }
 
         public bool ConnectCommandCanRun(object param) => !string.IsNullOrEmpty(ServerIpAddress.Text) && CheckServerIp();
@@ -114,20 +120,10 @@ namespace Client.MVVM.ViewModels
 
         public async void DisposeConnectionCommandRun(object param)
         {
-            ServerIpAddress.IsEnabled = true;
-            DeviceInfo.Status = Common.Enums.ClientConnectionStatus.Free;
-            ConnectButton.IsEnabled = true;
-            DisposeButton.Visibility = Visibility.Collapsed;
+            ConnectionLostNetwork();
+            ConnectionChangedUI(ClientConnectionStatus.Free);
 
-            BinaryWriter.Write(ConnectionRequests.DISCONNECTION_REQUEST);
-
-            Client.Close();
-            Stream.Close();
-            BinaryWriter.Close();
-            BinaryReader.Close();
-
-            await ShowInfobar("Successful disconnection from the server", "Screen sharing will be suspended shortly.", InfoBarSeverity.Warning, new TimeSpan(0, 0, 3));
-            ScreenShotArea.Source = new BitmapImage(new Uri(@"/images/wolf.jpg", UriKind.Relative));
+            await ShowInfobar("Successful disconnection from the server", "Screen sharing will be suspended shortly.", InfoBarSeverity.Warning, new TimeSpan(0, 0, 5));
         }
 
         public bool DisposeConnectionCommandCanRun(object param) => !string.IsNullOrEmpty(ServerIpAddress.Text);
@@ -155,14 +151,47 @@ namespace Client.MVVM.ViewModels
             };
         }
 
+        public InfoBarData GetBaseServerErrorInfoBarData()
+        {
+            return new InfoBarData()
+            {
+                Successed = false,
+                Title = "There was a problem connecting to server!",
+                Message = "Try again after making sure that you have typed the Server IP address correctly and that you are connected to the internet."
+            };
+
+        }
+
         public async void StartScreenShare()
         {
             while (true)
             {
-                if (DeviceInfo.Status == Common.Enums.ClientConnectionStatus.Free)
+                if (DeviceInfo.Status == ClientConnectionStatus.Free)
                     return;
-
-                RecieveScreenShot();
+                try
+                {
+                    RecieveScreenShot();
+                }
+                catch (ServerConnectionException)
+                {
+                    ConnectionChangedUI(ClientConnectionStatus.Free);
+                    ConnectionLostNetwork();
+                    await ShowInfobar(new InfoBarData()
+                    {
+                        Title = "Disconnected from Server",
+                        Message = "This may be because your internet connection has been interrupted or the server has stopped working.",
+                        Successed = false
+                    }, InfoBarSeverity.Error, new TimeSpan(0, 0, 10));
+                    return;
+                }
+                catch (Exception)
+                {
+                    ConnectionChangedUI(ClientConnectionStatus.Free);
+                    ConnectionLostNetwork();
+                    await ShowInfobar(GetBaseServerErrorInfoBarData(), InfoBarSeverity.Error, new TimeSpan(0, 0, 10));
+                    throw;
+                }
+                //Thread.Sleep(41);
                 await Task.Delay(41);
             }
         }
@@ -247,8 +276,16 @@ namespace Client.MVVM.ViewModels
             byte[] response = new byte[ushort.MaxValue];
 
 
-            // Send request to server for get screen shot
-            BinaryWriter.Write(ConnectionRequests.GET_SCREENSHOT_REQUEST);
+            //Send request to server for get screen shot
+            //And Check connection to the server
+            try
+            {
+                BinaryWriter.Write(ConnectionRequests.GET_SCREENSHOT_REQUEST);
+            }
+            catch (Exception)
+            {
+                throw new ServerConnectionException();
+            }
 
 
             // Receive a responsoe for initialize remoteEP
@@ -331,15 +368,45 @@ namespace Client.MVVM.ViewModels
 
         }
 
+        public void ConnectionChangedUI(ClientConnectionStatus currentStatus)
+        {
+            bool boolValue = currentStatus == ClientConnectionStatus.Connected ? false : true;
+            ServerIpAddress.IsEnabled = boolValue;
+            ConnectButton.IsEnabled = boolValue;
+            DeviceInfo.Status = currentStatus;
+            DisposeButton.Visibility = currentStatus == ClientConnectionStatus.Connected ? Visibility.Visible : Visibility.Collapsed;
+
+            if (boolValue)
+                ScreenShotArea.Source = new BitmapImage(new Uri(@"/images/wolf.jpg", UriKind.Relative));
+
+        }
+
+        public void ConnectionLostNetwork()
+        {
+
+            try
+            {
+                BinaryWriter.Write(ConnectionRequests.DISCONNECTION_REQUEST);
+            }
+            catch (Exception) { }
+
+            Client.Close();
+            Stream.Close();
+            BinaryWriter.Close();
+            BinaryReader.Close();
+        }
+
         public async Task ShowInfobar(string title, string message, InfoBarSeverity severity, TimeSpan openTime)
         {
             ConnectionInfoBar.Title = title;
             ConnectionInfoBar.Message = message;
             ConnectionInfoBar.Severity = severity;
 
+            ConnectionInfoBar.Visibility = Visibility.Visible;
             ConnectionInfoBar.IsOpen = true;
             await Task.Delay(openTime);
             ConnectionInfoBar.IsOpen = false;
+            ConnectionInfoBar.Visibility = Visibility.Collapsed;
 
         }
 
@@ -349,11 +416,33 @@ namespace Client.MVVM.ViewModels
             ConnectionInfoBar.Message = infoBarData.Message;
             ConnectionInfoBar.Severity = severity;
 
+            ConnectionInfoBar.Visibility = Visibility.Visible;
             ConnectionInfoBar.IsOpen = true;
             await Task.Delay(openTime);
             ConnectionInfoBar.IsOpen = false;
+            ConnectionInfoBar.Visibility = Visibility.Collapsed;
 
         }
+
+        public Wpf.Ui.Controls.MessageBox GetErrorMessageBox(string title, string content)
+        {
+            var message = new Wpf.Ui.Controls.MessageBox()
+            {
+                Title = title,
+                Content = content,
+                ButtonLeftAppearance = ControlAppearance.Danger,
+                ButtonLeftName = "Ok",
+                ButtonRightAppearance = ControlAppearance.Transparent,
+                ButtonRightName = "Close",
+            };
+
+            message.ButtonRightClick += new RoutedEventHandler((o, e) => { message.Close(); });
+            message.ButtonLeftClick += new RoutedEventHandler((o, e) => { message.Close(); });
+
+
+            return message;
+        }
+
 
         #endregion
 

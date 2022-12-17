@@ -36,7 +36,7 @@ namespace Server
         {
 
             // Initialize Server Ip Address
-            ServerIpAddress = IPAddress.Loopback;
+            ServerIpAddress = IPAddress.Parse(ServerInfo.IpAddress);
 
             // Initialize TCP Listener
             //Listener = new TcpListener(ServerIpAddress, GeneralUDPValues.SERVER_PORT_NUMBER);
@@ -104,31 +104,6 @@ namespace Server
             // Initialize Instances
             IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse(ClientInfo.IpAddress), GeneralUDPValues.CLIENT_PORT_NUMBER);
             byte[] response = new byte[ushort.MaxValue];
-
-
-            //Bitmap memoryImage;
-            //memoryImage = new Bitmap(1600, 1080);
-            //Size s = new Size(memoryImage.Width, memoryImage.Height);
-            //Graphics memoryGraphics = Graphics.FromImage(memoryImage);
-            //memoryGraphics.CopyFromScreen(0, 0, 0, 0, s);
-
-
-            //ImageConverter converter = new ImageConverter();
-            //var bytes = (byte[])converter.ConvertTo(memoryImage, typeof(byte[]));
-            //int a = (bytes.Length / 20000) + 1;
-            //int count = 0;
-            //while (a >= 0)
-            //{
-            //    if (a == 0)
-            //    {
-            //        UdpClient.Send(new byte[2] { 2, 3 }, new byte[2] { 2, 3 }.Length, remoteEP);
-            //        break;
-            //    }
-            //    UdpClient.Send(bytes.Skip(count).Take(20000).ToArray(), bytes.Skip(count).Take(20000).ToArray().Length, remoteEP);
-            //    a--;
-            //    count += 20000;
-            //}
-
 
 
             // Send empty response to client for inilialize endpoint

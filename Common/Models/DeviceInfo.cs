@@ -22,19 +22,19 @@ namespace Common.Models
 
         public DeviceInfo()
         {
-            //var host = Dns.GetHostEntry(Dns.GetHostName());
-            //foreach (var ip in host.AddressList)
-            //{
-            //    if (ip.AddressFamily == AddressFamily.InterNetwork)
-            //    {
-            //        // Get Ipv4 Address
-            //        IpAddress = ip.ToString();
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    // Get Ipv4 Address
+                    IpAddress = ip.ToString();
 
-            //        break;
-            //    }
-            //}
+                    break;
+                }
+            }
 
-            IpAddress = IPAddress.Loopback.ToString();
+            //IpAddress = IPAddress.Loopback.ToString();
 
             // Get the Name of HOST  
             Hostname = Dns.GetHostName();

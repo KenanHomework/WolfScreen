@@ -107,6 +107,8 @@
 
         <!--#endregion-->
 
+
+
         <!--#region AppView-->
 
         <Grid Margin="0" Background="{StaticResource Secondary_clr}" >
@@ -115,9 +117,11 @@
                 <RowDefinition Height="60"/>
             </Grid.RowDefinitions>
 
-            <Image Name="ScreenShotArea"/>
 
-            <ui:InfoBar Name="ConnectionInfoBar" VerticalAlignment="Top" Grid.RowSpan="2" Panel.ZIndex="2"/>
+            <ui:InfoBar Name="ConnectionInfoBar" Width="auto" Height="400"  Visibility="Collapsed"
+                        VerticalAlignment="Top" Grid.RowSpan="2"  Panel.ZIndex="2"/>
+
+            <Image Name="ScreenShotArea"/>
 
             <!--#region ActionBar-->
 
