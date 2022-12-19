@@ -39,11 +39,13 @@ namespace Server
             ServerIpAddress = IPAddress.Parse(ServerInfo.IpAddress);
 
             // Initialize TCP Listener
-            //Listener = new TcpListener(ServerIpAddress, GeneralUDPValues.SERVER_PORT_NUMBER);
             Listener = new TcpListener(27001);
 
             Console.WriteLine("Server launched");
             ConsoleHelper.ShowPropery("Server Ip Address", ServerIpAddress.ToString());
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("* ServerIP address shown is not always correct please find your IpAddress using cmd -> 'ipconfig' command");
+            Console.ResetColor();
         }
 
         public static void ConnectionClient()
